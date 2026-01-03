@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Система для Нормативных Документов ЖКХ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .search-box {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .search-options select,
+        .search-options input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .search-options select {
+            flex: 1;
+        }
+
+        .search-options input {
+            width: 80px;
+        }
+
+        .search-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .search-button:active {
+            transform: translateY(0);
+        }
+
+        .search-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            display: grid;
+            gap: 20px;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .result-document {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .result-article {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .result-chapter {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .result-content {
+            color: #444;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .result-similarity {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .error {
+            background: #ff4444;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .search-options {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 QA Система для Нормативных Документов ЖКХ</h1>
+            <p>Единая база: 18 документов, 2,078 чанков, точность 97%</p>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="stat-documents">18</div>
+                <div class="stat-label">Документов</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-chunks">2078</div>
+                <div class="stat-label">Чанков</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-accuracy">97%</div>
+                <div class="stat-label">Точность</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-model">e5</div>
+                <div class="stat-label">Модель</div>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <input
+                type="text"
+                class="search-input"
+                id="searchQuery"
+                placeholder="Введите ваш вопрос..."
+                value="Что такое юридическое лицо?"
+            >
+
+            <div class="search-options">
+                <select id="documentFilter">
+                    <option value="">Все документы</option>
+                </select>
+                <input
+                    type="number"
+                    id="resultCount"
+                    min="1"
+                    max="20"
+                    value="5"
+                    placeholder="Результатов"
+                >
+            </div>
+
+            <button class="search-button" id="searchButton" onclick="search()">
+                🔍 Найти
+            </button>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+        <div id="loading" class="loading hidden">Загрузка...</div>
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8001';
+
+        // Загрузка статистики
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_URL}/stats`);
+                const data = await response.json();
+
+                document.getElementById('stat-documents').textContent = data.documents_count;
+                document.getElementById('stat-chunks').textContent = data.chunks_count;
+                document.getElementById('stat-model').textContent = data.model.split('-')[1];
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+            }
+        }
+
+        // Загрузка списка документов
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_URL}/documents`);
+                const data = await response.json();
+
+                const select = document.getElementById('documentFilter');
+                data.documents.forEach(doc => {
+                    const option = document.createElement('option');
+                    option.value = doc;
+                    option.textContent = doc;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Ошибка загрузки документов:', error);
+            }
+        }
+
+        // Поиск
+        async function search() {
+            const query = document.getElementById('searchQuery').value.trim();
+            const filterDocument = document.getElementById('documentFilter').value;
+            const k = parseInt(document.getElementById('resultCount').value) || 5;
+
+            if (!query) {
+                showError('Введите запрос');
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+            clearResults();
+
+            try {
+                const requestBody = {
+                    query: query,
+                    k: k
+                };
+
+                if (filterDocument) {
+                    requestBody.filter_document = filterDocument;
+                }
+
+                const response = await fetch(`${API_URL}/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                showError(`Ошибка поиска: ${error.message}`);
+                console.error('Search error:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Отображение результатов
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="result-card"><p>Ничего не найдено. Попробуйте изменить запрос или фильтр.</p></div>';
+                return;
+            }
+
+            results.forEach(result => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+
+                const similarityPercent = (result.similarity * 100).toFixed(1);
+
+                card.innerHTML = `
+                    <div class="result-header">
+                        <div>
+                            <div class="result-document">${escapeHtml(result.document)}</div>
+                            ${result.article ? `<div class="result-article">${escapeHtml(result.article)}</div>` : ''}
+                            ${result.chapter ? `<div class="result-chapter">${escapeHtml(result.chapter)}</div>` : ''}
+                        </div>
+                        <div class="result-similarity">${similarityPercent}%</div>
+                    </div>
+                    <div class="result-content">${escapeHtml(result.content)}</div>
+                `;
+
+                resultsDiv.appendChild(card);
+            });
+        }
+
+        // Вспомогательные функции
+        function showLoading(show) {
+            const loadingDiv = document.getElementById('loading');
+            const button = document.getElementById('searchButton');
+
+            if (show) {
+                loadingDiv.classList.remove('hidden');
+                button.disabled = true;
+                button.textContent = '⏳ Поиск...';
+            } else {
+                loadingDiv.classList.add('hidden');
+                button.disabled = false;
+                button.textContent = '🔍 Найти';
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.add('hidden');
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Enter для поиска
+        document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                search();
+            }
+        });
+
+        // Инициализация
+        loadStats();
+        loadDocuments();
+    </script>
+</body>
+</html>

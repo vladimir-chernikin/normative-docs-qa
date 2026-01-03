@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+reports/*.log
+
+# Local models (too large for GitHub, downloaded automatically)
+vector-db-test/local_models/
+
+# Cache
+.cache/
+
+# Environment
+.env
+.env.local
+
+# Secret files (API keys, credentials)
+vector-db-test/august-bond-*.json
+vector-db-test/config/config.json
+vector-db-test/config/config.json.backup

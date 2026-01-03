@@ -1,0 +1,259 @@
+{
+  "version": "1.1.0",
+  "last_updated": "2025-01-01",
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Провайдер OpenAI API (GPT модели)",
+      "models": {
+        "gpt-3.5-turbo": {
+          "input_price_per_1m": 0.5,
+          "output_price_per_1m": 1.5,
+          "context_window": 16384,
+          "description": "Быстрая и экономичная модель для большинства задач"
+        },
+        "gpt-4": {
+          "input_price_per_1m": 30.0,
+          "output_price_per_1m": 60.0,
+          "context_window": 128000,
+          "description": "Мощная модель для сложных задач"
+        },
+        "gpt-4-turbo": {
+          "input_price_per_1m": 10.0,
+          "output_price_per_1m": 30.0,
+          "context_window": 128000,
+          "description": "Улучшенная версия GPT-4 с большим контекстным окном"
+        },
+        "gpt-4o": {
+          "input_price_per_1m": 5.0,
+          "output_price_per_1m": 15.0,
+          "context_window": 128000,
+          "description": "Новейшая мультимодальная модель с улучшенной производительностью"
+        },
+        "chatgpt-4o-latest": {
+          "input_price_per_1m": 5.0,
+          "output_price_per_1m": 15.0,
+          "context_window": 128000,
+          "description": "Алиас актуального ChatGPT на базе GPT-4o (цены соответствуют gpt-4o)"
+        },
+        "gpt-4o-mini": {
+          "input_price_per_1m": 0.15,
+          "output_price_per_1m": 0.6,
+          "context_window": 128000,
+          "description": "Экономичная модель с высокой производительностью для текстовых и визуальных задач"
+        },
+        "gpt-4.1": {
+          "input_price_per_1m": 2.5,
+          "output_price_per_1m": 10.0,
+          "context_window": 1047576,
+          "description": "Продвинутая модель с большим контекстным окном и улучшенным следованием инструкциям"
+        },
+        "gpt-4.1-mini": {
+          "input_price_per_1m": 0.2,
+          "output_price_per_1m": 0.8,
+          "context_window": 1047576,
+          "description": "Компактная версия GPT-4.1 для экономичных приложений"
+        },
+        "gpt-4.1-nano": {
+          "input_price_per_1m": 0.1,
+          "output_price_per_1m": 0.4,
+          "context_window": 1047576,
+          "description": "Наиболее экономичная модель с большим контекстным окном"
+        },
+        "gpt-3.5-turbo-16k": {
+          "input_price_per_1m": 1.0,
+          "output_price_per_1m": 2.0,
+          "context_window": 16384,
+          "description": "Вариант 3.5-turbo с увеличенным контекстом (исторические официальные цены)"
+        }
+      },
+      "aliases": {
+        "gpt-3.5-turbo-1106": "gpt-3.5-turbo",
+        "gpt-3.5-turbo-0125": "gpt-3.5-turbo",
+        "gpt-3.5-turbo-instruct-0914": "gpt-3.5-turbo",
+        "gpt-4-0613": "gpt-4",
+        "gpt-4-0314": "gpt-4",
+        "gpt-4-1106-preview": "gpt-4-turbo",
+        "gpt-4-0125-preview": "gpt-4-turbo",
+        "gpt-4-turbo-preview": "gpt-4-turbo",
+        "gpt-4-turbo-2024-04-09": "gpt-4-turbo",
+        "gpt-4o-2024-05-13": "gpt-4o",
+        "gpt-4o-2024-08-06": "gpt-4o",
+        "gpt-4o-2024-11-20": "gpt-4o",
+        "gpt-4o-realtime-preview": "gpt-4o",
+        "gpt-4o-realtime-preview-2024-10-01": "gpt-4o",
+        "gpt-4o-realtime-preview-2025-06-03": "gpt-4o",
+        "gpt-4o-audio-preview": "gpt-4o",
+        "gpt-4o-audio-preview-2024-10-01": "gpt-4o",
+        "gpt-4o-audio-preview-2025-06-03": "gpt-4o",
+        "gpt-4o-mini-realtime-preview": "gpt-4o-mini",
+        "gpt-4o-mini-realtime-preview-2024-12-17": "gpt-4o-mini",
+        "gpt-4o-mini-audio-preview": "gpt-4o-mini",
+        "gpt-4o-mini-audio-preview-2024-12-17": "gpt-4o-mini",
+        "gpt-4o-mini-tts": "gpt-4o-mini",
+        "gpt-4o-transcribe": "gpt-4o",
+        "gpt-4o-mini-transcribe": "gpt-4o-mini",
+        "gpt-4o-search-preview": "gpt-4o",
+        "gpt-4o-search-preview-2025-03-11": "gpt-4o",
+        "gpt-4o-mini-search-preview": "gpt-4o-mini",
+        "gpt-4o-mini-search-preview-2025-03-11": "gpt-4o-mini",
+        "gpt-4.1-2025-04-14": "gpt-4.1",
+        "gpt-4.1-mini-2025-04-14": "gpt-4.1-mini",
+        "gpt-4.1-nano-2025-04-14": "gpt-4.1-nano",
+        "chatgpt-4o-latest": "gpt-4o",
+        "gpt-5": "gpt-4.1",
+        "gpt-5-2025-08-07": "gpt-4.1",
+        "gpt-5-mini": "gpt-4.1-mini",
+        "gpt-5-mini-2025-08-07": "gpt-4.1-mini",
+        "gpt-5-nano": "gpt-4.1-nano",
+        "gpt-5-nano-2025-08-07": "gpt-4.1-nano",
+        "gpt-5-chat-latest": "gpt-4.1"
+      }
+    },
+    "mistral": {
+      "name": "Mistral AI",
+      "description": "Провайдер Mistral AI API",
+      "models": {
+        "mistral-tiny": {
+          "input_price_per_1m": 0.2,
+          "output_price_per_1m": 0.6,
+          "context_window": 32000,
+          "description": "Быстрая и экономичная модель для простых задач"
+        },
+        "mistral-small": {
+          "input_price_per_1m": 0.2,
+          "output_price_per_1m": 0.6,
+          "context_window": 32000,
+          "description": "Сбалансированная модель для различных задач"
+        },
+        "mistral-medium": {
+          "input_price_per_1m": 2.7,
+          "output_price_per_1m": 8.1,
+          "context_window": 32000,
+          "description": "Продвинутая модель для сложных задач"
+        },
+        "mistral-large": {
+          "input_price_per_1m": 2.0,
+          "output_price_per_1m": 6.0,
+          "context_window": 128000,
+          "description": "Наиболее мощная модель Mistral для сложных задач"
+        },
+        "open-mistral-7b": {
+          "input_price_per_1m": 0.25,
+          "output_price_per_1m": 0.25,
+          "context_window": 8192,
+          "description": "Открытая модель на базе Mistral 7B"
+        },
+        "open-mixtral-8x7b": {
+          "input_price_per_1m": 0.7,
+          "output_price_per_1m": 0.7,
+          "context_window": 32000,
+          "description": "Открытая модель на базе Mixtral 8x7B"
+        },
+        "mistral-embed": {
+          "input_price_per_1m": 0.1,
+          "output_price_per_1m": 0.0,
+          "context_window": 0,
+          "description": "Модель для создания эмбеддингов"
+        },
+        "mistral-small-3.1": {
+          "input_price_per_1m": 0.2,
+          "output_price_per_1m": 0.6,
+          "context_window": 128000,
+          "description": "Открытая модель, оптимизированная для низкой задержки, конкурент GPT-4o-mini"
+        }
+      }
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Провайдер Google Gemini API",
+      "models": {
+        "gemini-2.5-flash": {
+          "input_price_per_1m": {
+            "text": 0.15,
+            "image": 0.15,
+            "video": 0.15,
+            "audio": 1.0
+          },
+          "output_price_per_1m": 0.6,
+          "context_window": 1000000,
+          "description": "Гибридная модель с поддержкой рассуждений и контекстным окном 1M токенов"
+        },
+        "gemini-2.5-pro": {
+          "input_price_per_1m": {
+            "text": 1.25,
+            "image": 1.25,
+            "video": 1.25,
+            "audio": 1.25
+          },
+          "output_price_per_1m": 10.0,
+          "context_window": 2000000,
+          "description": "Мощная многоцелевая модель для сложных задач программирования и рассуждений"
+        },
+        "gemini-2.0-flash": {
+          "input_price_per_1m": {
+            "text": 0.1,
+            "image": 0.1,
+            "video": 0.1,
+            "audio": 0.7
+          },
+          "output_price_per_1m": 0.4,
+          "context_window": 1000000,
+          "description": "Сбалансированная мультимодальная модель с контекстным окном 1M токенов"
+        },
+        "gemini-2.0-flash-lite": {
+          "input_price_per_1m": 0.075,
+          "output_price_per_1m": 0.3,
+          "context_window": 128000,
+          "description": "Самая экономичная модель для масштабного использования"
+        }
+      },
+      "aliases": {
+        "gemini-1.5-flash": "gemini-2.0-flash",
+        "gemini-1.5-pro": "gemini-2.5-pro"
+      }
+    },
+    "yandex": {
+      "name": "YandexGPT",
+      "description": "Провайдер YandexGPT API от Яндекса",
+      "models": {
+        "yandexgpt-lite": {
+          "input_price_per_1m": 270.0,
+          "output_price_per_1m": 1350.0,
+          "context_window": 8000,
+          "description": "Легкая и быстрая модель для простых задач"
+        },
+        "yandexgpt-lite-alterna": {
+          "input_price_per_1m": 400.0,
+          "output_price_per_1m": 2000.0,
+          "context_window": 8000,
+          "description": "Альтернативная легкая модель с улучшенным качеством"
+        },
+        "yandexgpt": {
+          "input_price_per_1m": 540.0,
+          "output_price_per_1m": 2700.0,
+          "context_window": 8000,
+          "description": "Основная модель YandexGPT для большинства задач"
+        },
+        "yandexgpt-pro": {
+          "input_price_per_1m": 1350.0,
+          "output_price_per_1m": 6750.0,
+          "context_window": 8000,
+          "description": "Мощная модель для сложных задач с расширенными возможностями"
+        }
+      }
+    },
+    "zai": {
+      "name": "Zai",
+      "description": "Провайдер Zai API (GLM модели)",
+      "models": {
+        "glm-4.5": {
+          "input_price_per_1m": 0.6,
+          "output_price_per_1m": 2.2,
+          "context_window": 128000,
+          "description": "Открытая модель с сильными возможностями в программировании и агентских задачах"
+        }
+      }
+    }
+  }
+}
