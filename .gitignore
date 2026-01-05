@@ -25,6 +25,13 @@ ENV/
 *.log
 reports/*.log
 
+# Test reports (JSON files)
+reports/*.json
+
+# Debug files
+debug_*.py
+debug_*.sh
+
 # Local models (too large for GitHub, downloaded automatically)
 vector-db-test/local_models/
 
