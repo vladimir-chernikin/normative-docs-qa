@@ -232,7 +232,7 @@
     <div class="container">
         <div class="header">
             <h1>📚 QA Система для Нормативных Документов ЖКХ</h1>
-            <p>Единая база: 18 документов, 2,078 чанков, точность 97%</p>
+            <p>Единая база: 18 документов, 8,340 чанков, точность 80%+</p>
         </div>
 
         <div class="stats" id="stats">
@@ -241,15 +241,15 @@
                 <div class="stat-label">Документов</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" id="stat-chunks">2078</div>
+                <div class="stat-value" id="stat-chunks">8340</div>
                 <div class="stat-label">Чанков</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" id="stat-accuracy">97%</div>
+                <div class="stat-value" id="stat-accuracy">80%+</div>
                 <div class="stat-label">Точность</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" id="stat-model">e5</div>
+                <div class="stat-value" id="stat-model">e5-base</div>
                 <div class="stat-label">Модель</div>
             </div>
         </div>
@@ -272,7 +272,7 @@
                     id="resultCount"
                     min="1"
                     max="20"
-                    value="5"
+                    value="10"
                     placeholder="Результатов"
                 >
             </div>
@@ -288,7 +288,7 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:8001';
+        const API_URL = 'http://155.212.217.73:8001';
 
         // Загрузка статистики
         async function loadStats() {
@@ -340,7 +340,7 @@
             try {
                 const requestBody = {
                     query: query,
-                    k: k
+                    top_k: k
                 };
 
                 if (filterDocument) {
@@ -360,7 +360,7 @@
                 }
 
                 const data = await response.json();
-                displayResults(data);
+                displayResults(data.results, data.reformulated_query, data.original_query);
             } catch (error) {
                 showError(`Ошибка поиска: ${error.message}`);
                 console.error('Search error:', error);
@@ -370,8 +370,23 @@
         }
 
         // Отображение результатов
-        function displayResults(results) {
+        function displayResults(results, reformulatedQuery, originalQuery) {
             const resultsDiv = document.getElementById('results');
+
+            // Показываем уточненный запрос если он отличается от оригинала
+            if (reformulatedQuery && reformulatedQuery !== originalQuery) {
+                const reformDiv = document.createElement('div');
+                reformDiv.className = 'result-card';
+                reformDiv.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                reformDiv.style.color = 'white';
+                reformDiv.style.padding = '15px 25px';
+                reformDiv.style.marginBottom = '20px';
+                reformDiv.innerHTML = `
+                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">🔍 Уточненный запрос:</div>
+                    <div style="font-size: 16px; font-weight: bold;">${escapeHtml(reformulatedQuery)}</div>
+                `;
+                resultsDiv.appendChild(reformDiv);
+            }
 
             if (results.length === 0) {
                 resultsDiv.innerHTML = '<div class="result-card"><p>Ничего не найдено. Попробуйте изменить запрос или фильтр.</p></div>';
