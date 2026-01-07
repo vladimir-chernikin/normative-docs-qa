@@ -23,7 +23,7 @@ ENV/
 
 # Logs
 *.log
-reports/*.log
+logs/*.log
 
 # Test reports (JSON files)
 reports/*.json
@@ -47,5 +47,6 @@ vector-db-test/vectordb/
 
 # Secret files (API keys, credentials)
 vector-db-test/august-bond-*.json
-vector-db-test/config/config.json
-vector-db-test/config/config.json.backup
+
+# Documentation with secrets
+инструкции/

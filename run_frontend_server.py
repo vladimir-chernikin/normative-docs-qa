@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Простой HTTP сервер для тестового фронтенда
+HTTP сервер для фронтенда QA системы нормативных документов
 """
 
 import http.server
@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 PORT = 8080
-FRONTEND_DIR = Path("/home/olga/normativ_docs/Волков/test_frontend")
+FRONTEND_DIR = Path("/home/olga/normativ_docs/Волков/frontend")
 
 class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -36,7 +36,7 @@ def start_server():
 
     with socketserver.TCPServer(("", PORT), MyHTTPRequestHandler) as httpd:
         print("\n" + "=" * 60)
-        print("🚀 ЗАПУСК ТЕСТОВОГО ФРОНТЕНДА")
+        print("🚀 ЗАПУСК ФРОНТЕНДА QA СИСТЕМЫ")
         print("=" * 60)
         print(f"📍 URL: http://localhost:{PORT}")
         print(f"📁 Директория: {FRONTEND_DIR}")

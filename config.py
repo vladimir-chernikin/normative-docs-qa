@@ -14,9 +14,11 @@ BASE_DIR = Path(__file__).parent
 FULLDOCS_DIR = BASE_DIR / "fulldocx"
 VECTORDB_DIR = BASE_DIR / "vector-db-test" / "vectordb"
 REPORTS_DIR = BASE_DIR / "reports"
+LOGS_DIR = BASE_DIR / "logs"
 
 # Создаем директории если их нет
 REPORTS_DIR.mkdir(exist_ok=True)
+LOGS_DIR.mkdir(exist_ok=True)
 
 # Модель для эмбедингов
 EMBEDDING_MODEL = "intfloat/multilingual-e5-base"
@@ -36,7 +38,7 @@ MIN_AVG_CHUNK_SIZE = 100
 
 # Логирование
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-LOG_FILE = REPORTS_DIR / "processing.log"
+LOG_FILE = LOGS_DIR / "processing.log"
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 

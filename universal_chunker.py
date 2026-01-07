@@ -87,7 +87,8 @@ class UniversalDocumentChunker:
     def _extract_government_decree_chunks(self) -> List[Dict[str, Any]]:
         """Чанкер для постановлений Правительства с ограничением размера"""
 
-        MAX_CHUNK_SIZE = 1000  # Максимальный размер чанка (уменьшен для лучшего разбиения)
+        MAX_CHUNK_SIZE = 2000  # ИЗМЕНЕНО (2026-01-07): Увеличено с 1000 до 2000 для полных ответов
+        APP_MAX_SIZE = 5000  # Максимальный размер для приложений (Приложение 1 и т.д.)
 
         # Читаем структуру
         structure_content = self.structure_file.read_text(encoding='utf-8')
@@ -95,10 +96,19 @@ class UniversalDocumentChunker:
         # Читаем DOCX
         doc = Document(str(self.docx_file))
         full_text = []
+
+        # ИЗМЕНЕНО (2026-01-07): Добавлено чтение таблиц
+        # Читаем параграфы
         for para in doc.paragraphs:
             text = para.text.strip()
             if text:
                 full_text.append(text)
+
+        # Читаем таблицы и превращаем в текст
+        for table in doc.tables:
+            table_text = self._table_to_text(table)
+            if table_text:
+                full_text.append(table_text)
 
         # Извлекаем приложения из структуры
         apps = self._parse_appendices(structure_content)
@@ -111,8 +121,9 @@ class UniversalDocumentChunker:
         current_main_point = None  # Для отслеживания основного пункта
 
         for line in full_text:
-            # Проверяем приложение
-            app_match = re.match(r'Приложение\s+№?\s*\d+', line, re.IGNORECASE)
+            # ИСПРАВЛЕНО (2026-01-07): Добавлена поддержка латинской N и кириллицы №
+            # Также поддерживает формат "Приложение N 1(1)"
+            app_match = re.match(r'Приложение\s+[N№]?\s*\d+(\(\d+\))?', line, re.IGNORECASE)
             if app_match:
                 # Сохраняем предыдущий чанк
                 if current_chunk_lines:
@@ -193,20 +204,25 @@ class UniversalDocumentChunker:
         for chunk in raw_chunks:
             text = chunk['text']
             size = len(text)
+            is_app = chunk['metadata'].get('app') is not None
 
-            if size <= MAX_CHUNK_SIZE:
+            # ИЗМЕНЕНО (2026-01-07): Умное разбиение для приложений
+            # Для приложений используем увеличенный лимит APP_MAX_SIZE
+            max_size = APP_MAX_SIZE if is_app else MAX_CHUNK_SIZE
+
+            if size <= max_size:
                 # Нормальный чанк - добавляем как есть
                 chunks.append(chunk)
             else:
                 # Слишком большой - разбиваем по подпунктам
-                logger.info(f"Разбиваем большой чанк ({size} символов) на части")
-                sub_chunks = self._split_by_subpoints(text, MAX_CHUNK_SIZE)
+                logger.info(f"Разбиваем большой чанк ({size} символов, app={is_app}) на части")
+                sub_chunks = self._split_by_subpoints(text, max_size)
 
                 # Рекурсивно проверяем под-чанки - если все еще огромные, разбиваем по предложениям
                 for sub_text in sub_chunks:
-                    if len(sub_text) > 2000:
+                    if len(sub_text) > 3000:
                         logger.info(f"Рекурсивно разбиваем под-чанк ({len(sub_text)} символов) по предложениям")
-                    final_subs = self._split_by_sentences(sub_text, 1500)
+                    final_subs = self._split_by_sentences(sub_text, 2000)
                     for final_text in final_subs:
                         chunks.append({
                             'text': final_text,
@@ -403,6 +419,28 @@ class UniversalDocumentChunker:
                 break
 
         return chunks
+
+    def _table_to_text(self, table) -> str:
+        """
+        Превращает таблицу DOCX в текстовый формат
+
+        ИЗМЕНЕНО (2026-01-07): Добавлена обработка таблиц для Приложения 1
+        Таблица с требованиями к качеству превращается в описательный текст
+        """
+        if not table.rows:
+            return ""
+
+        rows_text = []
+        for row in table.rows:
+            cells_text = [cell.text.strip() for cell in row.cells]
+            # Фильтруем пустые ячейки
+            cells_text = [t for t in cells_text if t]
+            if cells_text:
+                # Объединяем ячейки через " | "
+                row_text = " | ".join(cells_text)
+                rows_text.append(row_text)
+
+        return "\n".join(rows_text)
 
     def _parse_appendices(self, structure_text: str) -> List[str]:
         """Парсит приложения из структуры"""
