@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 class SmartDocumentChunker:
     """Умный чанкер для кодексов (ГК РФ, ЖК РФ, ФЗ) с мультиуровневым подходом"""
 
+    # Настройки фильтрации
+    MIN_CHUNK_SIZE = 100  # Минимальный размер чанка
+    MAX_CHUNK_SIZE = 1500  # Максимальный размер чанка
+
     def __init__(self, docx_file: Path, structure_file: Path):
         self.docx_file = docx_file
         self.structure_file = structure_file
@@ -102,6 +106,105 @@ class SmartDocumentChunker:
 
         logger.info(f"Прочитано {len(paragraphs)} параграфов из DOCX")
         return paragraphs
+
+    def _filter_by_size(self, chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Фильтрует и исправляет размеры чанков"""
+
+        filtered = []
+        i = 0
+
+        while i < len(chunks):
+            chunk = chunks[i]
+            text = chunk['text']
+            text_len = len(text)
+
+            # Слишком мелкий - пытаемся объединить со следующим
+            if text_len < self.MIN_CHUNK_SIZE:
+                if i + 1 < len(chunks):
+                    next_chunk = chunks[i + 1]
+                    combined_text = text + '\n\n' + next_chunk['text']
+
+                    if len(combined_text) <= self.MAX_CHUNK_SIZE:
+                        merged_chunk = {
+                            'text': combined_text,
+                            'metadata': chunk['metadata'].copy(),
+                            'level': chunk['level'],
+                            'merged': True
+                        }
+                        filtered.append(merged_chunk)
+                        i += 2
+                        continue
+
+            # Слишком крупный - разбиваем
+            if text_len > self.MAX_CHUNK_SIZE:
+                split_chunks = self._split_large_chunk(chunk)
+                filtered.extend(split_chunks)
+            else:
+                filtered.append(chunk)
+
+            i += 1
+
+        logger.info(f"Фильтрация: удалено мелких, разбиты крупные")
+        return filtered
+
+    def _split_large_chunk(self, chunk: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Разбивает крупный чанк на части"""
+
+        text = chunk['text']
+        paragraphs = text.split('\n')
+
+        result = []
+        current_part = []
+        current_len = 0
+        metadata = chunk['metadata']
+
+        for para in paragraphs:
+            para_len = len(para)
+
+            if para_len > self.MAX_CHUNK_SIZE:
+                if current_part:
+                    result.append({
+                        'text': '\n'.join(current_part),
+                        'metadata': metadata.copy(),
+                        'level': metadata.get('level', 2)
+                    })
+                    current_part = []
+                    current_len = 0
+
+                sentences = re.split(r'(?<=[.!?])\s+', para)
+                for sent in sentences:
+                    if current_len + len(sent) > self.MAX_CHUNK_SIZE and current_part:
+                        result.append({
+                            'text': '\n'.join(current_part),
+                            'metadata': metadata.copy(),
+                            'level': metadata.get('level', 2)
+                        })
+                        current_part = []
+                        current_len = 0
+
+                    current_part.append(sent)
+                    current_len += len(sent) + 1
+            else:
+                if current_len + para_len > self.MAX_CHUNK_SIZE and current_part:
+                    result.append({
+                        'text': '\n'.join(current_part),
+                        'metadata': metadata.copy(),
+                        'level': metadata.get('level', 2)
+                    })
+                    current_part = []
+                    current_len = 0
+
+                current_part.append(para)
+                current_len += para_len + 1
+
+        if current_part:
+            result.append({
+                'text': '\n'.join(current_part),
+                'metadata': metadata.copy(),
+                'level': metadata.get('level', 2)
+            })
+
+        return result
 
     def extract_text_with_structure(self) -> List[Dict[str, Any]]:
         """Извлекает мультиуровневые чанки с parent-child ссылками"""
@@ -246,7 +349,11 @@ class SmartDocumentChunker:
         logger.info(f"Создано {len(chunks)} чанков level 2 (пункты)")
         logger.info(f"Всего чанков: {len(all_chunks)}")
 
-        return all_chunks
+        # Применяем фильтрацию по размеру
+        filtered_chunks = self._filter_by_size(all_chunks)
+        logger.info(f"После фильтрации: {len(filtered_chunks)} чанков")
+
+        return filtered_chunks
 
 
 # Тестовый запуск

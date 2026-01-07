@@ -1,21 +1,26 @@
 # QA система для нормативных документов
-# Зависимости Python
+# Зависимости Python (обновлено 2025-01-06)
 
-# Модели эмбедингов
-sentence-transformers>=2.2.0
+# Модели эмбедингов (для e5-base)
+sentence-transformers>=2.7.0
+transformers>=4.36.0
+torch>=2.1.0
 
 # LangChain для векторных БД
-langchain-community>=0.0.10
-langchain-core>=0.1.0
+langchain-community>=0.2.0
+langchain-core>=0.3.0
 
 # Работа с DOCX файлами
-python-docx>=0.8.11
+python-docx>=1.1.0
 
 # HTTP клиент для API
-httpx>=0.24.0
+httpx>=0.27.0
 
 # NumPy для работы с векторами
-numpy>=1.24.0
+numpy>=1.26.0
 
-# FAISS для векторного поиска (опционально, если не установлен с langchain)
-faiss-cpu>=1.7.4
+# FAISS для векторного поиска
+faiss-cpu>=1.8.0
+
+# Дополнительные зависимости
+tqdm>=4.66.0

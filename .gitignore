@@ -35,6 +35,9 @@ debug_*.sh
 # Local models (too large for GitHub, downloaded automatically)
 vector-db-test/local_models/
 
+# Vector databases (too large for GitHub)
+vector-db-test/vectordb/
+
 # Cache
 .cache/
 

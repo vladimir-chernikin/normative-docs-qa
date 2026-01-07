@@ -26,28 +26,13 @@ try:
     from langchain_community.vectorstores import FAISS
     from langchain_core.documents import Document
     from langchain_text_splitters import RecursiveCharacterTextSplitter
-    from langchain_core.embeddings import Embeddings
+    # Импортируем из utils
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from utils.embeddings import SentenceTransformerEmbeddings
 except ImportError as e:
     logger.error(f"Ошибка импорта: {e}")
     logger.error("Установите зависимости: pip install sentence-transformers langchain-community faiss-cpu")
     sys.exit(1)
-
-
-class SentenceTransformerEmbeddings(Embeddings):
-    """Обертка для SentenceTransformer совместимая с LangChain"""
-
-    def __init__(self, model: SentenceTransformer):
-        self.model = model
-
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        """Создает эмбеддинги для списка документов"""
-        embeddings = self.model.encode(texts, show_progress_bar=False)
-        return embeddings.tolist()
-
-    def embed_query(self, text: str) -> List[float]:
-        """Создает эмбеддинг для запроса"""
-        embedding = self.model.encode([text], show_progress_bar=False)[0]
-        return embedding.tolist()
 
 
 class VectorDBCreator:

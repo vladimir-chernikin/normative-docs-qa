@@ -217,6 +217,51 @@
             display: none;
         }
 
+        .simplify-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .simplify-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .simplify-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .simplified-content {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            border-left: 4px solid #f5576c;
+        }
+
+        .simplified-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #f5576c;
+            margin-bottom: 10px;
+        }
+
+        .simplified-text {
+            color: #333;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.8em;
@@ -232,7 +277,7 @@
     <div class="container">
         <div class="header">
             <h1>📚 QA Система для Нормативных Документов ЖКХ</h1>
-            <p>Единая база: 18 документов, 8,340 чанков, точность 80%+</p>
+            <p>Единая база: 18 документов, 8,340 чанков, multilingual-e5-base</p>
         </div>
 
         <div class="stats" id="stats">
@@ -245,12 +290,16 @@
                 <div class="stat-label">Чанков</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" id="stat-accuracy">80%+</div>
-                <div class="stat-label">Точность</div>
-            </div>
-            <div class="stat-item">
                 <div class="stat-value" id="stat-model">e5-base</div>
                 <div class="stat-label">Модель</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-tokens">0</div>
+                <div class="stat-label">Токенов за сессию</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-cost">0.00 ₽</div>
+                <div class="stat-label">Стоимость</div>
             </div>
         </div>
 
@@ -271,8 +320,8 @@
                     type="number"
                     id="resultCount"
                     min="1"
-                    max="20"
-                    value="10"
+                    max="5"
+                    value="5"
                     placeholder="Результатов"
                 >
             </div>
@@ -289,6 +338,25 @@
 
     <script>
         const API_URL = 'http://155.212.217.73:8001';
+        let searchResults = [];  // Глобальный массив для хранения результатов поиска
+
+        // ИСПРАВЛЕНО (2026-01-07): Добавлено отслеживание токенов и стоимости
+        let totalTokens = 0;  // Всего токенов за сессию
+        let totalCost = 0;   // Общая стоимость за сессию
+        const TOKEN_PRICE = 0.18 / 1000000;  // Цена за токен (0.18 ₽ за 1M токенов)
+
+        // Функция обновления статистики токенов
+        function updateTokenStats() {
+            document.getElementById('stat-tokens').textContent = totalTokens.toLocaleString();
+            document.getElementById('stat-cost').textContent = totalCost.toFixed(4) + ' ₽';
+        }
+
+        // Функция добавления токенов
+        function addTokens(tokens) {
+            totalTokens += tokens;
+            totalCost = totalTokens * TOKEN_PRICE;
+            updateTokenStats();
+        }
 
         // Загрузка статистики
         async function loadStats() {
@@ -298,7 +366,7 @@
 
                 document.getElementById('stat-documents').textContent = data.documents_count;
                 document.getElementById('stat-chunks').textContent = data.chunks_count;
-                document.getElementById('stat-model').textContent = data.model.split('-')[1];
+                document.getElementById('stat-model').textContent = data.model;
             } catch (error) {
                 console.error('Ошибка загрузки статистики:', error);
             }
@@ -360,12 +428,80 @@
                 }
 
                 const data = await response.json();
+                searchResults = data.results;  // Сохраняем результаты глобально
+
+                // ИСПРАВЛЕНО (2026-01-07): Добавляем токены поиска
+                if (data.tokens_used) {
+                    addTokens(data.tokens_used);
+                    console.log(`Поиск: ${data.tokens_used} токенов`);
+                }
+
                 displayResults(data.results, data.reformulated_query, data.original_query);
             } catch (error) {
                 showError(`Ошибка поиска: ${error.message}`);
                 console.error('Search error:', error);
             } finally {
                 showLoading(false);
+            }
+        }
+
+        // Упрощение текста
+        async function simplifyText(resultIndex, buttonElement, contentElement) {
+            const originalButtonText = buttonElement.textContent;
+            buttonElement.disabled = true;
+            buttonElement.textContent = 'Упрощаю...';
+
+            try {
+                // Берем текст из глобального массива результатов
+                const text = searchResults[resultIndex].content;
+
+                // ИСПРАВЛЕНО (2026-01-07): Увеличен max_length с 60 до 300 для полноценных ответов
+                const response = await fetch(`${API_URL}/simplify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        max_length: 300
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // ИСПРАВЛЕНО (2026-01-07): Добавляем токены упрощения
+                if (data.tokens_used) {
+                    addTokens(data.tokens_used);
+                    console.log(`Упрощение: ${data.tokens_used} токенов`);
+                }
+
+                // Создаем блок с упрощенным текстом и информацией о токенах
+                const cost = data.tokens_used ? (data.tokens_used * TOKEN_PRICE).toFixed(4) : '0.0000';
+                const simplifiedDiv = document.createElement('div');
+                simplifiedDiv.className = 'simplified-content';
+                simplifiedDiv.innerHTML = `
+                    <div class="simplified-label">Упрощенный текст:</div>
+                    <div class="simplified-text">${escapeHtml(data.simplified_text)}</div>
+                    <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                        📊 Токенов: ${data.tokens_used || 0} | 💰 Стоимость: ${cost} ₽
+                    </div>
+                `;
+
+                // Добавляем после контента
+                contentElement.parentNode.insertBefore(simplifiedDiv, buttonElement);
+
+                // Скрываем кнопку после успешного упрощения
+                buttonElement.style.display = 'none';
+
+            } catch (error) {
+                showError(`Ошибка упрощения: ${error.message}`);
+                console.error('Simplify error:', error);
+                buttonElement.disabled = false;
+                buttonElement.textContent = originalButtonText;
             }
         }
 
@@ -382,7 +518,7 @@
                 reformDiv.style.padding = '15px 25px';
                 reformDiv.style.marginBottom = '20px';
                 reformDiv.innerHTML = `
-                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">🔍 Уточненный запрос:</div>
+                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Уточненный запрос:</div>
                     <div style="font-size: 16px; font-weight: bold;">${escapeHtml(reformulatedQuery)}</div>
                 `;
                 resultsDiv.appendChild(reformDiv);
@@ -393,11 +529,25 @@
                 return;
             }
 
-            results.forEach(result => {
+            // ИСПРАВЛЕНО (2026-01-07): Добавляем информацию о затратах на поиск
+            const searchInfo = document.createElement('div');
+            searchInfo.className = 'result-card';
+            searchInfo.style.background = '#f0f9ff';
+            searchInfo.style.border = '1px solid #3b82f6';
+            searchInfo.style.padding = '10px 20px';
+            searchInfo.style.marginBottom = '15px';
+            searchInfo.style.fontSize = '13px';
+            searchInfo.style.color = '#1e40af';
+            searchInfo.innerHTML = '✅ Поиск завершен. Информация о токенах отображается в статистике выше.';
+            resultsDiv.appendChild(searchInfo);
+
+            results.forEach((result, index) => {
                 const card = document.createElement('div');
                 card.className = 'result-card';
 
                 const similarityPercent = (result.similarity * 100).toFixed(1);
+                const contentId = `content-${index}`;
+                const buttonId = `simplify-btn-${index}`;
 
                 card.innerHTML = `
                     <div class="result-header">
@@ -408,7 +558,10 @@
                         </div>
                         <div class="result-similarity">${similarityPercent}%</div>
                     </div>
-                    <div class="result-content">${escapeHtml(result.content)}</div>
+                    <div class="result-content" id="${contentId}">${escapeHtml(result.content)}</div>
+                    <button class="simplify-button" id="${buttonId}" onclick="simplifyText(${index}, this, document.getElementById('${contentId}'))">
+                        Упростить текст
+                    </button>
                 `;
 
                 resultsDiv.appendChild(card);

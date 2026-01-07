@@ -19,7 +19,8 @@ REPORTS_DIR = BASE_DIR / "reports"
 REPORTS_DIR.mkdir(exist_ok=True)
 
 # Модель для эмбедингов
-EMBEDDING_MODEL = "intfloat/multilingual-e5-small"
+EMBEDDING_MODEL = "intfloat/multilingual-e5-base"
+
 
 # Настройки обработки
 CHUNK_SIZE = 2000

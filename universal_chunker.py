@@ -2,6 +2,18 @@
 """
 Универсальный чанкер для разных типов нормативных документов
 Автоматически определяет тип документа и использует соответствующую стратегию
+
+Поддерживаемые типы документов:
+- CODE: Кодексы и Федеральные законы (использует SmartDocumentChunker)
+- GOVERNMENT_DECREE: Постановления Правительства (с подпунктами типа 80(1), 80(2))
+- MINISTRY_ORDER: Приказы министерств
+- LETTER: Письма (простой чанкинг)
+
+Особенности чанкинга постановлений:
+- Разбивает по приложениям
+- Разбивает по разделам (римские цифры)
+- Разбивает по пунктам, включая подпункты (80, 80(1), 80(2) - в одном чанке)
+- Ограничение на размер чанка: ~1500 символов
 """
 
 import re
@@ -73,7 +85,9 @@ class UniversalDocumentChunker:
         return chunker.extract_text_with_structure()
 
     def _extract_government_decree_chunks(self) -> List[Dict[str, Any]]:
-        """Чанкер для постановлений Правительства"""
+        """Чанкер для постановлений Правительства с ограничением размера"""
+
+        MAX_CHUNK_SIZE = 1000  # Максимальный размер чанка (уменьшен для лучшего разбиения)
 
         # Читаем структуру
         structure_content = self.structure_file.read_text(encoding='utf-8')
@@ -90,10 +104,11 @@ class UniversalDocumentChunker:
         apps = self._parse_appendices(structure_content)
 
         # Разбиваем текст по приложениям и пунктам
-        chunks = []
+        raw_chunks = []
         current_app = None
         current_section = None
         current_chunk_lines = []
+        current_main_point = None  # Для отслеживания основного пункта
 
         for line in full_text:
             # Проверяем приложение
@@ -101,7 +116,7 @@ class UniversalDocumentChunker:
             if app_match:
                 # Сохраняем предыдущий чанк
                 if current_chunk_lines:
-                    chunks.append({
+                    raw_chunks.append({
                         'text': '\n'.join(current_chunk_lines),
                         'metadata': {
                             'document': self.docx_file.stem,
@@ -114,6 +129,7 @@ class UniversalDocumentChunker:
                 current_app = line[:100]
                 current_section = None
                 current_chunk_lines = [line]
+                current_main_point = None  # Сбрасываем пункт
                 continue
 
             # Проверяем раздел (римские цифры)
@@ -121,7 +137,7 @@ class UniversalDocumentChunker:
             if section_match:
                 current_section = line[:100]
                 if len(current_chunk_lines) > 1:
-                    chunks.append({
+                    raw_chunks.append({
                         'text': '\n'.join(current_chunk_lines),
                         'metadata': {
                             'document': self.docx_file.stem,
@@ -131,28 +147,38 @@ class UniversalDocumentChunker:
                         }
                     })
                 current_chunk_lines = [line]
+                current_main_point = None  # Сбрасываем пункт
                 continue
 
-            # Проверяем пункт
-            point_match = re.match(r'^(\d+)\.\s+(.+)', line)
-            if point_match and len(current_chunk_lines) > 5:
-                # Сохраняем предыдущий чанк
-                chunks.append({
-                    'text': '\n'.join(current_chunk_lines),
-                    'metadata': {
-                        'document': self.docx_file.stem,
-                        'type': 'Постановление',
-                        'app': current_app,
-                        'section': current_section
-                    }
-                })
-                current_chunk_lines = [line]
+            # Проверяем пункт (включая подпункты типа 80(1))
+            point_match = re.match(r'^(\d+)(\(\d+\))?\.\s+(.+)', line)
+            if point_match:
+                main_point_number = point_match.group(1)  # Основной номер (80 из 80(1))
+
+                # Если это новый основной пункт - разбиваем чанк
+                if main_point_number != current_main_point:
+                    # Сохраняем предыдущий чанк
+                    if current_chunk_lines:
+                        raw_chunks.append({
+                            'text': '\n'.join(current_chunk_lines),
+                            'metadata': {
+                                'document': self.docx_file.stem,
+                                'type': 'Постановление',
+                                'app': current_app,
+                                'section': current_section
+                            }
+                        })
+                    current_main_point = main_point_number
+                    current_chunk_lines = [line]
+                else:
+                    # Это подпункт того же основного пункта - добавляем к текущему чанку
+                    current_chunk_lines.append(line)
             else:
                 current_chunk_lines.append(line)
 
         # Добавляем последний чанк
         if current_chunk_lines:
-            chunks.append({
+            raw_chunks.append({
                 'text': '\n'.join(current_chunk_lines),
                 'metadata': {
                     'document': self.docx_file.stem,
@@ -162,7 +188,128 @@ class UniversalDocumentChunker:
                 }
             })
 
+        # Разбиваем крупные чанки по подпунктам (сохраняя смысл)
+        chunks = []
+        for chunk in raw_chunks:
+            text = chunk['text']
+            size = len(text)
+
+            if size <= MAX_CHUNK_SIZE:
+                # Нормальный чанк - добавляем как есть
+                chunks.append(chunk)
+            else:
+                # Слишком большой - разбиваем по подпунктам
+                logger.info(f"Разбиваем большой чанк ({size} символов) на части")
+                sub_chunks = self._split_by_subpoints(text, MAX_CHUNK_SIZE)
+
+                # Рекурсивно проверяем под-чанки - если все еще огромные, разбиваем по предложениям
+                for sub_text in sub_chunks:
+                    if len(sub_text) > 2000:
+                        logger.info(f"Рекурсивно разбиваем под-чанк ({len(sub_text)} символов) по предложениям")
+                    final_subs = self._split_by_sentences(sub_text, 1500)
+                    for final_text in final_subs:
+                        chunks.append({
+                            'text': final_text,
+                            'metadata': chunk['metadata'].copy()
+                        })
+
         return chunks
+
+    def _split_by_subpoints(self, text: str, max_size: int) -> List[str]:
+        """Разбивает крупный чанк по границам подпунктов или параграфов"""
+
+        lines = text.split('\n')
+        chunks = []
+        current_chunk = []
+        current_size = 0
+
+        for line in lines:
+            line_size = len(line)
+
+            # Проверяем - это новая логическая единица?
+            is_new_unit = (
+                re.match(r'^\d+\(\d+\)\.', line) or  # Подпункт 80(1)
+                re.match(r'^\d+\.', line) or           # Пункт 80
+                re.match(r'^[а-я]\)', line) or         # Буквенный подпункт а)
+                (line and line[0].isupper() and len(line) < 200)  # Короткая заглавная строка
+            )
+
+            # Если добавление превысит лимит И это новая единица - разбиваем
+            if is_new_unit and current_chunk and current_size + line_size > max_size:
+                chunks.append('\n'.join(current_chunk))
+                current_chunk = [line]
+                current_size = line_size
+            else:
+                current_chunk.append(line)
+                current_size += line_size
+
+        # Последний чанк
+        if current_chunk:
+            chunks.append('\n'.join(current_chunk))
+
+        return chunks
+
+    def _split_by_sentences(self, text: str, max_size: int) -> List[str]:
+        """Разбивает чанк по предложениям (для рекурсивного разбиения огромных чанков)"""
+
+        # Разбиваем по предложениям (ищем точку, восклицательный или вопросительный знак)
+        sentences = []
+        current_sentence = []
+
+        # Разбиваем текст на строки и обрабатываем
+        lines = text.split('\n')
+        for line in lines:
+            # Разбиваем строку на предложения по точкам, восклицательным и вопросительным знакам
+            remaining = line
+            while remaining:
+                # Ищем конец предложения (. ! ?) с последующим пробелом или концом строки
+                match = re.search(r'[^.!?]*[.!?](?:\s+|$)', remaining)
+                if match:
+                    sentence_part = match.group(0).strip()
+                    if sentence_part:
+                        current_sentence.append(sentence_part)
+                    remaining = remaining[match.end():]
+
+                    # Если есть последующая часть и она начинается с маленькой буквы - это продолжение
+                    if remaining and remaining[0].islower() and current_sentence:
+                        # Продолжаем накапливать
+                        continue
+                    elif current_sentence:
+                        # Конец предложения
+                        sentences.append(' '.join(current_sentence))
+                        current_sentence = []
+                else:
+                    # Не найден конец предложения - берем остаток как есть
+                    if remaining.strip():
+                        current_sentence.append(remaining.strip())
+                    break
+
+        # Добавляем последнее предложение
+        if current_sentence:
+            sentences.append(' '.join(current_sentence))
+
+        # Собираем предложения в чанки
+        chunks = []
+        current_chunk = []
+        current_size = 0
+
+        for sentence in sentences:
+            sentence_size = len(sentence)
+
+            # Если добавление превысит лимит и есть уже что-то в чанке - разбиваем
+            if current_chunk and current_size + sentence_size > max_size:
+                chunks.append(' '.join(current_chunk))
+                current_chunk = [sentence]
+                current_size = sentence_size
+            else:
+                current_chunk.append(sentence)
+                current_size += sentence_size
+
+        # Последний чанк
+        if current_chunk:
+            chunks.append(' '.join(current_chunk))
+
+        return chunks if chunks else [text]
 
     def _extract_ministry_order_chunks(self) -> List[Dict[str, Any]]:
         """Чанкер для приказов министерств"""
