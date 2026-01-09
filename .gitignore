@@ -47,6 +47,3 @@ vector-db-test/vectordb/
 
 # Secret files (API keys, credentials)
 vector-db-test/august-bond-*.json
-
-# Documentation with secrets
-инструкции/
